@@ -105,6 +105,26 @@ During runtime, the CPU will automatically switch to the code segment. This is f
 
 The optimal way to read from data is in chunks, writing them bit by bit starting from some location in the data segment. Since writes default there, this is made easy. Reading from a PCI device while the selector is high makes no difference, as it goes to the PCI regardless. Unexpected behaviour can happen if you try to read while in code mode from an extended location or a VIA. Best to not do that.
 
+WHen the VDA pin on the CPU is high, it is trying to access a valid data address. WHen high, we should usually select the data segment. When VPA is high instead, it is trying to fetch an opcode for the next instruction. If both are high, it is attempting to reach something in data such as the stack. It is best to give it a data segment. If none are high, it is doing something internally and it does not matter which one is selected.
+
+If it has a valid data address but we are trying to read from the code segment, instead select the code segment. If we are writing, then still select the data segment. If the execution segment bit is high, then we need to select the data segment when we fetch any opcodes. Otherwise keep that at the code segment.
+
+The lowest 65K pin is a sepecial case. Since we cannot pass the SEL bit due to the address limit, we must combine the first pin output to decide which chip. Addresses are preserved however. The SEL bit (segment select, not from VIA) is computed earlier, and if that is low we are selecting the code segment. Therefore we must select the BIOS chip at all times. When SEL is high, we need to read from the Zero-page/stack chip located in the same spot. The special case is reading the IVT for the CPU. Regardless of which segment we want, the BIOS chip must always be selected. To do this, if A5-A15 are all high, we disable the stack chip and enable the BIOS chip. This is because only inputs A8-A23 are passed into the ROM.
+
+*Address decoder pins (active high)*
+
+
+| Pin | Description                                      |
+| ----- | -------------------------------------------------- |
+| 0   | Lowest 65K. Combine with SEL to find which chip. |
+| 1   | Primary VIA Selected.                            |
+| 2   | Secondary VIA Selected.                          |
+| 3   | Extended memory Selected.                        |
+| 4   | Cartridge A Selected.                            |
+| 5   | Cartridge B Selected.                            |
+| 6   | Cartridge C Selected.                            |
+| 7   | Cartridge D Selected.                            |
+
 *Cartridge connector*
 
 
@@ -166,7 +186,6 @@ Reading/writing to PCI is far simpler than an interrupt. When you need to do one
 | 27   | VCC                    |
 | 28   | GND                    |
 | 29   | NC                     |
-
 
 Similarly to the cartridge conenctor design, the PCI has a data and address bus. The Address bus acts as a device ID, and each device is responsible for determing if it is being called upon. The data bus is a standard data bus, though it first goes through an intermediary bus. This is so that it can send the ID to the correct register upon an interrupt, and it can be manually selected to send the data towards the CPU. RWB tells the device whether it is being read from or written to. Combined with the system clock you can synchronize write actions. The Enable pin is to simply tell the PCI bus that a device is being selected. INT0-3 avalible is broadcasting which interrupt lanes are avalible to be occupied. A smart device may choose to use either INT0 or INT1, however using INT2 or INT3 can be risky. This is because the CPU may be blocking those. The block pin is not transmitted directly, instead all avalible pins go high *only to the PCI connectors*, not the VIA pins. This is so that the CPU has time to process it all.
 
