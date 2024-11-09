@@ -108,10 +108,20 @@ The optimal way to read from data is in chunks, writing them bit by bit starting
 *Cartridge connector*
 
 
-| Pin | Description | col3 |
-| ----- | ------------- | ------ |
-|     |             |      |
-|     |             |      |
+| Pin  | Description            |
+| ------ | ------------------------ |
+| 0-7  | Data Bus               |
+| 8-29 | Address Bus            |
+| 30   | Cartridge Enable       |
+| 31   | Segment Selector       |
+| 32   | (R/WB) 0=WRITE, 1=READ |
+| 33   | (PHI2) System Clock    |
+| 34   | VCC                    |
+| 35   | GND                    |
+
+*Pin description*
+
+The data bus is the typical CPU data bus leaving and entering the processor. The address bus is 4MB wide, however only 3MB of that space is usable. The cartridge enable pin is used to select which of the four cartridges should be transmiting or receiving data, and the segment selector is meant to select either the code (rom) or data (ram) chips within the cartridge body. RWB is simply the RWB pin coming off the CPU, which goes everywhere. PHI2 is the system clock which allows everything to be synchronized writing to the memory of the cartridge can be done by checking the RWB pin and the rising edge of the PHI2 pin. This also goes for general RAM chips like stack or extended memory. This gives a 36-pin cartridge connector.
 
 #### PCI/External Bus
 
@@ -136,3 +146,28 @@ In the fast interrupt lanes, things work a little differently. In these lanes, w
 Reading/writing to PCI is far simpler than an interrupt. When you need to do one, you can simply use it as a memory address. For example, if you get an interrupt from a UART chip, you could read x bytes from the device ID, each subsequent read is the next byte. Writing is much the same, and it works pretty standard. A lot of trust is left to the specific devices, as if they don't behave it causes issues.
 
 *PCI connector*
+
+
+| Pin  | Description            |
+| ------ | ------------------------ |
+| 0-7  | PCI Device ID/Address  |
+| 8-15 | PCI Data Bus           |
+| 16   | (R/WB) 0=WRITE, 1=READ |
+| 17   | (PHI2) System Clock    |
+| 18   | PCI Enable             |
+| 19   | INT0 Avalible          |
+| 20   | INT1 Avalible          |
+| 21   | INT2 Avalible          |
+| 22   | INT3 Avalible          |
+| 23   | INT0 Request           |
+| 24   | INT1 Request           |
+| 25   | INT2 Request           |
+| 26   | INT3 Request           |
+| 27   | VCC                    |
+| 28   | GND                    |
+| 29   | NC                     |
+
+
+Similarly to the cartridge conenctor design, the PCI has a data and address bus. The Address bus acts as a device ID, and each device is responsible for determing if it is being called upon. The data bus is a standard data bus, though it first goes through an intermediary bus. This is so that it can send the ID to the correct register upon an interrupt, and it can be manually selected to send the data towards the CPU. RWB tells the device whether it is being read from or written to. Combined with the system clock you can synchronize write actions. The Enable pin is to simply tell the PCI bus that a device is being selected. INT0-3 avalible is broadcasting which interrupt lanes are avalible to be occupied. A smart device may choose to use either INT0 or INT1, however using INT2 or INT3 can be risky. This is because the CPU may be blocking those. The block pin is not transmitted directly, instead all avalible pins go high *only to the PCI connectors*, not the VIA pins. This is so that the CPU has time to process it all.
+
+INT0-3 Are the main request lines, which are all pulled low. When a lane comes avalible and it's time to send an interrupt, the device will first put it's device ID on the PCI data bus, before pulsing the desired interruopt lane high and then low.
