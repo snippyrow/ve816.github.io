@@ -76,6 +76,7 @@ VIA (Versatile Interface Adepter) is used to interface with the motherboard prop
 | 0x010200 - 0x3FFFFF | 4MB  | Extended Memory        |
 | 0x400000 - 0xFFFFFF | 12MB | Cartridges (DATA)      |
 
+**Note: the final 512KB memory chip is cut off by 0x10000 bytes*
 *Cartridges*
 
 
@@ -85,17 +86,16 @@ VIA (Versatile Interface Adepter) is used to interface with the motherboard prop
 | 0x700000 - 0x9FFFFF | 3MB  | Cartridge B |
 | 0xA00000 - 0xCFFFFF | 3MB  | Cartridge C |
 | 0xD00000 - 0xFFFFFF | 3MB  | Cartridge D |
+| *Code Segment*      |      |             |
 
-*Code Segment*
 
-
-| Range               | Size | Description       |
-| --------------------- | ------ | ------------------- |
-| 0x000000 - 0x0000FF | 256B | Zero-page         |
-| 0x000100 - 0x00FFDF | 65KB | Firmware/BIOS     |
-| 0x00FFE0 - 0x00FFFF | 32B  | IVT (see 65816)   |
-| 0x010000 - 0x3FFFFF | 4MB  | Unused            |
-| 0x400000 - 0xFFFFFF | 12MB | Cartridges (CODE) |
+| Range               | Size | Description        |
+| --------------------- | ------ | -------------------- |
+| 0x000000 - 0x0000FF | 256B | Zero-page          |
+| 0x000100 - 0x00FFDF | 65KB | Firmware/BIOS      |
+| 0x00FFE0 - 0x00FFFF | 32B  | IVT (see 65816)    |
+| 0x010000 - 0x3FFFFF | 4MB  | Unused (ext. mem.) |
+| 0x400000 - 0xFFFFFF | 12MB | Cartridges (CODE)  |
 
 #### Memory managment
 
@@ -113,7 +113,7 @@ The lowest 65K pin is a sepecial case. Since we cannot pass the SEL bit due to t
 
 When using either VIA or the extended memory region, there is no code located there, so it defaults to the chip regardless of the segment. The segment is only defined in the low 65K and on cartridges. There are three ways to run code on this computer, either through a BIOS-only system, using a cartridge with code and data chips and boot into that, or upload code through a UART system, setting the execution bit and jumping there.
 
-The execution bit is tricky. Since if you reset it the segment would instantly jump out of the code, it will wait exactly eight clock cycles before the change takes effect. This is so that the CPU has time to jump to that region of memory. For example if you load into extended memory and start from there, since it defaults to memory it begins regardless. After those eight cycles it will have fully switched. Going back follows the same prodecure.
+The execution bit is tricky. Since if you reset it the segment would instantly jump out of the code, it will wait exactly eight clock cycles before the change takes effect. This is so that the CPU has time to jump to that region of memory. For example if you load into extended memory and start from there, since it defaults to memory it begins regardless. After those eight cycles it will have fully switched. Going back follows the same prodecure. The best way is to simply pass it through an 8-bit shift-register to get the appropriate delay time.
 
 *Address decoder pins (active high)*
 
