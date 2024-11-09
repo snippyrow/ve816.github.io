@@ -111,6 +111,10 @@ If it has a valid data address but we are trying to read from the code segment, 
 
 The lowest 65K pin is a sepecial case. Since we cannot pass the SEL bit due to the address limit, we must combine the first pin output to decide which chip. Addresses are preserved however. The SEL bit (segment select, not from VIA) is computed earlier, and if that is low we are selecting the code segment. Therefore we must select the BIOS chip at all times. When SEL is high, we need to read from the Zero-page/stack chip located in the same spot. The special case is reading the IVT for the CPU. Regardless of which segment we want, the BIOS chip must always be selected. To do this, if A5-A15 are all high, we disable the stack chip and enable the BIOS chip. This is because only inputs A8-A23 are passed into the ROM.
 
+When using either VIA or the extended memory region, there is no code located there, so it defaults to the chip regardless of the segment. The segment is only defined in the low 65K and on cartridges. There are three ways to run code on this computer, either through a BIOS-only system, using a cartridge with code and data chips and boot into that, or upload code through a UART system, setting the execution bit and jumping there.
+
+The execution bit is tricky. Since if you reset it the segment would instantly jump out of the code, it will wait exactly eight clock cycles before the change takes effect. This is so that the CPU has time to jump to that region of memory. For example if you load into extended memory and start from there, since it defaults to memory it begins regardless. After those eight cycles it will have fully switched. Going back follows the same prodecure.
+
 *Address decoder pins (active high)*
 
 
